@@ -28,7 +28,7 @@ if csv_file:
     data = pd.read_csv(csv_file)
 
     # Process only the first 1000 rows
-    data = data[:50000]
+    data = data[:10000]
 
     st.write('Data preview:')
     st.write(data.head())
