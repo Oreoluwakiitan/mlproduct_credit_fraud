@@ -4,6 +4,7 @@ import numpy as np
 from catboost import CatBoostClassifier
 import base64
 
+@st.cache_data
 def load_model(model_file):
     model = CatBoostClassifier()
     model.load_model(model_file)
@@ -17,7 +18,7 @@ def get_download_link(data, filename):
 
 st.title('Credit Fraud Detection')
 
-# Load the pre-trained CatBoost model
+# Load the pre-trained CatBoost model only once
 model = load_model('trained_catboost_model.cbm')
 
 # Allow users to upload a CSV file
@@ -27,15 +28,25 @@ if csv_file:
     # Read the CSV file and display the first few rows
     data = pd.read_csv(csv_file)
 
-    # Process only the first 1000 rows
-    data = data[:10000]
+    # Process only the first 10000 rows
+    data = data[:50000]
 
     st.write('Data preview:')
     st.write(data.head())
 
-    # Make predictions using the CatBoost model
+    # Make predictions using the CatBoost model in batches
     with st.spinner('Making predictions...'):
-        predictions = model.predict(data)
+        batch_size = 1000
+        n_batches = int(np.ceil(len(data) / batch_size))
+        predictions = []
+
+        for i in range(n_batches):
+            start_idx = i * batch_size
+            end_idx = min((i + 1) * batch_size, len(data))
+            batch = data.iloc[start_idx:end_idx]
+            batch_predictions = model.predict(batch)
+            predictions.extend(batch_predictions)
+
         data['Class'] = predictions
 
     # Display the modified data with the 'Class' column
@@ -44,3 +55,4 @@ if csv_file:
 
     # Allow users to download the modified CSV file
     st.markdown(get_download_link(data, 'data_with_predictions.csv'), unsafe_allow_html=True)
+
